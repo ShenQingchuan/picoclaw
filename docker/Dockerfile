@@ -7,13 +7,16 @@ RUN apk add --no-cache git make
 
 WORKDIR /src
 
-# Cache dependencies
+# Cache dependencies (BuildKit: persists module downloads across builds)
 COPY go.mod go.sum ./
-RUN go mod download
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
 
 # Copy source and build
 COPY . .
-RUN make build
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    make build
 
 # ============================================================
 # Stage 2: Minimal runtime image

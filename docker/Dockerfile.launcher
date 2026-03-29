@@ -4,20 +4,29 @@
 FROM node:24-alpine AS frontend
 WORKDIR /src/web/frontend
 COPY web/frontend/package.json web/frontend/pnpm-lock.yaml ./
-RUN corepack enable && corepack prepare pnpm@latest --activate \
-  && pnpm install --frozen-lockfile
+RUN --mount=type=cache,id=picoclaw-pnpm-store,target=/pnpm/store \
+    corepack enable && corepack prepare pnpm@latest --activate \
+    && pnpm config set store-dir /pnpm/store \
+    && pnpm install --frozen-lockfile
 COPY web/frontend ./
-RUN pnpm build:backend
+RUN --mount=type=cache,id=picoclaw-pnpm-store,target=/pnpm/store \
+    --mount=type=cache,id=picoclaw-vite,target=/src/web/frontend/node_modules/.vite \
+    corepack enable && corepack prepare pnpm@latest --activate \
+    && pnpm config set store-dir /pnpm/store \
+    && pnpm build:backend
 
 # Stage 2: picoclaw + picoclaw-launcher + picoclaw-launcher-tui
 FROM golang:1.25-alpine AS builder
 RUN apk add --no-cache git make
 WORKDIR /src
 COPY go.mod go.sum ./
-RUN go mod download
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
 COPY . .
 COPY --from=frontend /src/web/backend/dist ./web/backend/dist
-RUN make build build-launcher build-launcher-tui \
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    make build build-launcher build-launcher-tui \
   && mkdir -p /out \
   && cp -L build/picoclaw build/picoclaw-launcher build/picoclaw-launcher-tui /out/
 

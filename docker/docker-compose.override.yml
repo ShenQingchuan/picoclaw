@@ -26,3 +26,6 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile.launcher
+    # Set on the host via .env or export; omit or leave empty for a random token each start.
+    environment:
+      PICOCLAW_LAUNCHER_TOKEN: ${PICOCLAW_LAUNCHER_TOKEN:-}
