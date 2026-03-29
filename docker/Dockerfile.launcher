@@ -1,0 +1,31 @@
+# Build launcher stack from repo source (replaces pre-built sipeed/picoclaw:launcher binaries).
+
+# Stage 1: Vite frontend → web/backend/dist (embed for picoclaw-launcher)
+FROM node:24-alpine AS frontend
+WORKDIR /src/web/frontend
+COPY web/frontend/package.json web/frontend/pnpm-lock.yaml ./
+RUN corepack enable && corepack prepare pnpm@latest --activate \
+  && pnpm install --frozen-lockfile
+COPY web/frontend ./
+RUN pnpm build:backend
+
+# Stage 2: picoclaw + picoclaw-launcher + picoclaw-launcher-tui
+FROM golang:1.25-alpine AS builder
+RUN apk add --no-cache git make
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+COPY --from=frontend /src/web/backend/dist ./web/backend/dist
+RUN make build build-launcher build-launcher-tui \
+  && mkdir -p /out \
+  && cp -L build/picoclaw build/picoclaw-launcher build/picoclaw-launcher-tui /out/
+
+# Stage 3: Runtime (matches published launcher layout)
+FROM alpine:3.23
+RUN apk add --no-cache ca-certificates tzdata
+COPY --from=builder /out/picoclaw /usr/local/bin/picoclaw
+COPY --from=builder /out/picoclaw-launcher /usr/local/bin/picoclaw-launcher
+COPY --from=builder /out/picoclaw-launcher-tui /usr/local/bin/picoclaw-launcher-tui
+ENTRYPOINT ["picoclaw-launcher"]
+CMD ["-public", "-no-browser"]

@@ -1,0 +1,28 @@
+# Local source images: merge with docker-compose.yml (no registry pull).
+#
+# From repo root:
+#   docker compose -f docker/docker-compose.yml -f docker/docker-compose.override.yml --profile gateway up --build
+#
+# From docker/ (Compose auto-merges docker-compose.override.yml):
+#   cd docker && docker compose --profile gateway up --build
+#
+# make docker-build / docker-run / docker-run-agent use this override via Makefile.
+
+services:
+  picoclaw-agent:
+    image: picoclaw:local
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+
+  picoclaw-gateway:
+    image: picoclaw:local
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+
+  picoclaw-launcher:
+    image: picoclaw:launcher-local
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.launcher

@@ -281,10 +281,13 @@ check: deps fmt vet test
 run: build
 	@$(BUILD_DIR)/$(BINARY_NAME) $(ARGS)
 
+# Minimal stack from local source (see docker/docker-compose.override.yml)
+DOCKER_COMPOSE_LOCAL=docker compose -f docker/docker-compose.yml -f docker/docker-compose.override.yml
+
 ## docker-build: Build Docker image (minimal Alpine-based)
 docker-build:
-	@echo "Building minimal Docker image (Alpine-based)..."
-	docker compose -f docker/docker-compose.yml build picoclaw-agent picoclaw-gateway
+	@echo "Building minimal Docker image (Alpine-based) from local source..."
+	$(DOCKER_COMPOSE_LOCAL) build picoclaw-agent picoclaw-gateway picoclaw-launcher
 
 ## docker-build-full: Build Docker image with full MCP support (Node.js 24)
 docker-build-full:
@@ -299,7 +302,7 @@ docker-test:
 
 ## docker-run: Run picoclaw gateway in Docker (Alpine-based)
 docker-run:
-	docker compose -f docker/docker-compose.yml --profile gateway up
+	$(DOCKER_COMPOSE_LOCAL) --profile gateway up
 
 ## docker-run-full: Run picoclaw gateway in Docker (full-featured)
 docker-run-full:
@@ -307,7 +310,7 @@ docker-run-full:
 
 ## docker-run-agent: Run picoclaw agent in Docker (interactive, Alpine-based)
 docker-run-agent:
-	docker compose -f docker/docker-compose.yml run --rm picoclaw-agent
+	$(DOCKER_COMPOSE_LOCAL) run --rm picoclaw-agent
 
 ## docker-run-agent-full: Run picoclaw agent in Docker (interactive, full-featured)
 docker-run-agent-full:
@@ -315,9 +318,9 @@ docker-run-agent-full:
 
 ## docker-clean: Clean Docker images and volumes
 docker-clean:
-	docker compose -f docker/docker-compose.yml down -v
+	$(DOCKER_COMPOSE_LOCAL) down -v
 	docker compose -f docker/docker-compose.full.yml down -v
-	docker rmi picoclaw:latest picoclaw:full 2>/dev/null || true
+	docker rmi picoclaw:local picoclaw:launcher-local picoclaw:latest picoclaw:full 2>/dev/null || true
 
 
 ## build-macos-app: Build PicoClaw macOS .app bundle (no terminal window)
