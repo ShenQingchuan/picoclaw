@@ -207,14 +207,34 @@ func (h *Handler) picoWebUIAddr(r *http.Request) string {
 	return net.JoinHostPort(host, strconv.Itoa(wsPort))
 }
 
+// stripStandardPort removes redundant :80 (http/ws) and :443 (https/wss)
+// so browsers don't try, e.g., wss on port 80 after a reverse-proxy rewrite.
+func stripStandardPort(hostPort string, scheme string) string {
+	host, port, err := net.SplitHostPort(hostPort)
+	if err != nil {
+		return hostPort
+	}
+	switch {
+	case port == "80" && (scheme == "ws" || scheme == "http"):
+		return host
+	case port == "443" && (scheme == "wss" || scheme == "https"):
+		return host
+	default:
+		return hostPort
+	}
+}
+
 func (h *Handler) buildWsURL(r *http.Request) string {
-	return requestWSScheme(r) + "://" + h.picoWebUIAddr(r) + "/pico/ws"
+	scheme := requestWSScheme(r)
+	return scheme + "://" + stripStandardPort(h.picoWebUIAddr(r), scheme) + "/pico/ws"
 }
 
 func (h *Handler) buildPicoEventsURL(r *http.Request) string {
-	return requestHTTPScheme(r) + "://" + h.picoWebUIAddr(r) + "/pico/events"
+	scheme := requestHTTPScheme(r)
+	return scheme + "://" + stripStandardPort(h.picoWebUIAddr(r), scheme) + "/pico/events"
 }
 
 func (h *Handler) buildPicoSendURL(r *http.Request) string {
-	return requestHTTPScheme(r) + "://" + h.picoWebUIAddr(r) + "/pico/send"
+	scheme := requestHTTPScheme(r)
+	return scheme + "://" + stripStandardPort(h.picoWebUIAddr(r), scheme) + "/pico/send"
 }
