@@ -87,7 +87,8 @@ dev-backend:
 	cd $(BACKEND_DIR) && PICOCLAW_BINARY="$(PICOCLAW_BINARY)" ${WEB_GO} run -ldflags "$(LAUNCHER_LDFLAGS)" . $(BACKEND_ARGS)
 
 # Build frontend and embed into Go binary
-build: build-frontend
+# Skip build-frontend when dist is pre-built (e.g. Docker multi-stage)
+build: $(if $(wildcard $(BACKEND_DIST)/index.html),,build-frontend)
 	@mkdir -p "$$(dirname "$(OUTPUT)")"
 	${WEB_GO} build $(GOFLAGS) -ldflags "$(LAUNCHER_LDFLAGS)" -o "$(OUTPUT)" ./$(BACKEND_DIR)/
 
